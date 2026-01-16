@@ -26,13 +26,6 @@ from .auth import (
 )
 from .crud import get_todos, get_todo, create_todo, update_todo, delete_todo
 
-# Импорт для шаблонов Jinja2 (если захочешь HTML страницы)
-from fastapi.templating import Jinja2Templates
-from fastapi import Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
@@ -43,15 +36,6 @@ app = FastAPI(
     title="Моё TODO-приложение с аутентификацией",
     lifespan=lifespan
 )
-
-# Инициализация Jinja2 шаблонов (если захочешь HTML страницы)
-templates = Jinja2Templates(directory="templates")
-
-# Добавляем middleware для сессий (нужен для flash-сообщений, если захочешь)
-app.add_middleware(SessionMiddleware, secret_key="your-secret-key-change-me")  # тот же SECRET_KEY
-
-# Монтируем папку static (для картинок)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Роут регистрации (/register)
 @app.post("/register", response_model=Token)

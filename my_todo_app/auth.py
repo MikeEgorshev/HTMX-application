@@ -27,6 +27,10 @@ from .database import get_db
 # Импорт моделей из нашего models.py (User для БД)
 from .models import User
 
+# Дополнительные функции для работы с токенами в cookies (если нужно)
+from fastapi.responses import Response
+from fastapi import Request
+
 load_dotenv()
 
 # Секретный ключ для подписи JWT (читаем из .env / окружения)
@@ -97,3 +101,23 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if user is None:
         raise credentials_exception
     return user  # Возвращает объект User для роутов
+
+
+#авторизация с использованием cookies
+def set_access_token_cookie(response: Response, token: str):
+    response.set_cookie(
+        key="access_token",
+        value=f"Bearer {token}",
+        httponly=True,
+        max_age=1800,  # 30 минут
+        expires=1800,
+        secure=False,  # True в продакшене с HTTPS
+        samesite="lax"
+    )
+
+#токен из cookie
+def get_token_from_cookie(request: Request) -> str | None:
+    token = request.cookies.get("access_token")
+    if token and token.startswith("Bearer "):
+        return token.split(" ", 1)[1]
+    return None
