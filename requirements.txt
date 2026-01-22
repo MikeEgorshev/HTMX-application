@@ -4,13 +4,12 @@ uvicorn==0.30.6   # Сервер для запуска (как "play" для п�
 sqlalchemy==2.0.35  # Для работы с базой данных
 pydantic==2.9.2   # Валидация данных (FastAPI его использует)
 passlib[argon2]==1.7.4  # Безопасное хэширование паролей
-#Async библиотеки
 python-jose[cryptography]==3.3.0  # Для JWT-токенов (аутентификация)
 asyncpg==0.29.0  # Async драйвер для PostgreSQL
 psycopg2-binary==2.9.9  # Для sync тестов, но мы на async
 alembic==1.13.1  # Для миграций БД (лучше create_all для prod)
 greenlet==3.0.3  # Для async в Windows
 python-dotenv==1.0.0  # Для загрузки .env файлов
-#bcrypt==3.2.2  # Для хэширования паролей (уходим, баги)
 argon2-cffi==23.1.0  # Для хэширования паролей (рекомендуется)
-jinja2==3.1.4  # Для HTML templates
+itsdangerous==2.1.2  # Для SessionMiddleware (HTMX сессии)
+jinja2==3.1.4  # Для HTML шаблонов

@@ -4,10 +4,16 @@ from pydantic import BaseModel, Field
 # Импорт Optional для опциональных полей (может быть None)
 from typing import Optional
 
+#
+from datetime import datetime
+
 # Схема для базовых данных пользователя (для чтения/ответов)
 class User(BaseModel):
     # Поле username: обязательное, тип str
     username: str
+
+    # Тип строки адреса аватарки
+    avatar_url: Optional[str] = None
 
     # Настройка: from_attributes = True — позволяет конвертировать SQLAlchemy-объект в Pydantic-схему
     class Config:
@@ -52,7 +58,13 @@ class Todo(TodoBase):
     # owner_id: int, для показа владельца
     owner_id: int
 
+    # Путь до картинки = str or None
+    image_url: Optional[str] = None
+    # Дата создания
+    created_at: datetime
+    # Дата обновления
+    updated_at: Optional[datetime] = None
+
     # Настройка: from_attributes = True — для конвертации из SQLAlchemy-модели
     class Config:
         from_attributes = True
-        

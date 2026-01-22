@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Мои задачи - TODO App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--border);
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+
+    .avatar:hover {
+        border-color: var(--primary);
+    }
+
+    .todo-list {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .todo-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        gap: 1rem;
+        align-items: start;
+        transition: all 0.2s;
+    }
+
+    .todo-item:hover {
+        border-color: var(--primary);
+    }
+
+    .todo-item.completed {
+        opacity: 0.6;
+    }
+
+    .todo-checkbox {
+        width: 20px;
+        height: 20px;
+        margin-top: 0.2rem;
+        cursor: pointer;
+        accent-color: var(--primary);
+    }
+
+    .todo-content {
+        flex: 1;
+    }
+
+    .todo-title {
+        font-size: 1.125rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .todo-item.completed .todo-title {
+        text-decoration: line-through;
+    }
+
+    .todo-description {
+        color: var(--text-dim);
+        font-size: 0.875rem;
+    }
+
+    .todo-image {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+    }
+
+    .todo-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-dim);
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+
+    .file-input-wrapper input[type=file] {
+        position: absolute;
+        left: -9999px;
+    }
+
+    .file-input-label {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--text-dim);
+        transition: all 0.2s;
+        font-size: 0.875rem;
+    }
+
+    .file-input-label:hover {
+        border-color: var(--primary);
+        color: var(--text);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>Мои задачи</h1>
+        <div class="user-info">
+            <div hx-target="this" hx-swap="outerHTML">
+                <img src="{{ user.avatar_url or '/static/images/default-avatar.png' }}" 
+                     alt="Avatar" 
+                     class="avatar"
+                     onclick="document.getElementById('avatar-upload').click()">
+                <form hx-post="/api/upload-avatar" 
+                      hx-encoding="multipart/form-data"
+                      hx-target="closest div"
+                      style="display: none;">
+                    <input type="file" 
+                           id="avatar-upload" 
+                           name="avatar" 
+                           accept="image/*"
+                           onchange="this.form.dispatchEvent(new Event('submit', {bubbles: true}))">
+                </form>
+            </div>
+            <div>
+                <div style="font-weight: 500;">{{ user.username }}</div>
+                <a href="/logout" style="color: var(--text-dim); font-size: 0.875rem; text-decoration: none;">
+                    Выйти
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Новая задача</h2>
+        <form hx-post="/api/todos" 
+              hx-target="#todo-list" 
+              hx-swap="afterbegin"
+              hx-encoding="multipart/form-data"
+              hx-on::after-request="this.reset()">
+            
+            <div class="form-group">
+                <label for="title">Название</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание (необязательно)</label>
+                <textarea id="description" name="description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Изображение (необязательно)</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="image" name="image" accept="image/*">
+                    <label for="image" class="file-input-label">
+                        📎 Выбрать файл
+                    </label>
+                </div>
+                <small id="file-name" style="color: var(--text-dim); margin-left: 0.5rem;"></small>
+            </div>
+
+            <button type="submit">+ Добавить задачу</button>
+        </form>
+    </div>
+
+    <div id="todo-list" class="todo-list">
+        {% if todos %}
+            {% for todo in todos %}
+                {% include 'partials/todo_item.html' %}
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <h3>Пока нет задач</h3>
+                <p>Создайте первую задачу, чтобы начать!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Показать имя выбранного файла
+    document.getElementById('image').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || '';
+        document.getElementById('file-name').textContent = fileName;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+<div class="todo-item {% if todo.completed %}completed{% endif %} fade-in" 
+     id="todo-{{ todo.id }}">
+    <input type="checkbox" 
+           class="todo-checkbox"
+           {% if todo.completed %}checked{% endif %}
+           hx-patch="/api/todos/{{ todo.id }}/toggle"
+           hx-target="#todo-{{ todo.id }}"
+           hx-swap="outerHTML">
+    
+    <div class="todo-content">
+        <div class="todo-title">{{ todo.title }}</div>
+        {% if todo.description %}
+            <div class="todo-description">{{ todo.description }}</div>
+        {% endif %}
+        {% if todo.image_url %}
+            <img src="{{ todo.image_url }}" alt="Todo image" class="todo-image">
+        {% endif %}
+    </div>
+
+    <div class="todo-actions">
+        <button class="btn btn-danger btn-sm"
+                hx-delete="/api/todos/{{ todo.id }}"
+                hx-target="#todo-{{ todo.id }}"
+                hx-swap="outerHTML swap:300ms"
+                hx-confirm="Удалить задачу?">
+            🗑️
+        </button>
+    </div>
+</div>

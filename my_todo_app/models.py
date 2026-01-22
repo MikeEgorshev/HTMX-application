@@ -1,5 +1,8 @@
 # Импорт инструментов из SQLAlchemy для определения колонок и типов данных
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+
+#
+from sqlalchemy.sql import func
 
 # Импорт базового класса Base из нашего database.py (относительный импорт с точкой, потому что файлы в одной папке)
 from .database import Base
@@ -17,6 +20,13 @@ class User(Base):
 
     # Колонка hashed_password: строка для хранения хэшированного пароля (не plaintext для безопасности)
     hashed_password = Column(String)
+    
+    # Путь до аватарки
+    avatar_url = Column(String, nullable=True, default="/static/images/default-avatar.png")
+    
+    # Время загрузки
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 
 # Класс модели для задач (таблица "todos" в БД)
 class TodoItem(Base):
@@ -37,3 +47,12 @@ class TodoItem(Base):
 
     # Колонка owner_id: целое число, foreign key — ссылка на id из таблицы users, для связи "один пользователь — много задач"
     owner_id = Column(Integer, ForeignKey("users.id"))
+
+    # Путь до картинки
+    image_url = Column(String, nullable=True)
+    
+    # Дата создания
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Дата обновления
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -1,0 +1,16 @@
+<div hx-target="this" hx-swap="outerHTML" class="fade-in">
+    <img src="{{ user.avatar_url }}" 
+         alt="Avatar" 
+         class="avatar"
+         onclick="document.getElementById('avatar-upload').click()">
+    <form hx-post="/api/upload-avatar" 
+          hx-encoding="multipart/form-data"
+          hx-target="closest div"
+          style="display: none;">
+        <input type="file" 
+               id="avatar-upload" 
+               name="avatar" 
+               accept="image/*"
+               onchange="this.form.dispatchEvent(new Event('submit', {bubbles: true}))">
+    </form>
+</div>
