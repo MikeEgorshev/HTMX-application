@@ -50,8 +50,6 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="Пользователь с таким username уже существует"
         )
     
-    # Хэшируем пароль и добавляем пользователя в БД
-    hashed_password = get_password_hash(user.password)
     db_user = User(username=user.username, hashed_password=hashed_password)
     db.add(db_user)
     await db.commit()
