@@ -2,9 +2,13 @@
 __pycache__/
 *.py[cod]
 *.log
-.env
 .venv
 venv/
+
+# Environment variables (НЕ КОММИТЬ!)
+.env
+.env.local
+.env.production
 
 # IDE
 .vscode/
@@ -13,7 +17,14 @@ venv/
 # OS
 .DS_Store
 
-# Docker
-*.env
+# Docker (для локальной разработки)
 docker-data/
 postgres-data/
+
+# Uploads (загруженные пользователями файлы)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Но сохраняем структуру папок
+!static/uploads/avatars/.gitkeep
+!static/uploads/todos/.gitkeep

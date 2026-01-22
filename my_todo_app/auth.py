@@ -33,21 +33,23 @@ from fastapi import Request
 
 load_dotenv()
 
-# Секретный ключ для подписи JWT (читаем из .env / окружения)
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-me")  # Change in prod
+# ВАЖНО: Читаем из env, в продакшне ОБЯЗАТЕЛЬНО установить!
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    # В разработке используем дефолтный, в продакшне будет ошибка
+    if os.getenv("ENVIRONMENT") == "production":
+        raise ValueError("SECRET_KEY must be set in production!")
+    SECRET_KEY = "dev-secret-key-change-in-production"
 
-# Алгоритм подписи (HS256 — симметричный, простой и безопасный)
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
-# Время жизни токена (30 мин)
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
-# Настройка контекста хэширования паролей с использованием argon2
 pwd_context = CryptContext(
     schemes=["argon2"],
     deprecated="auto"
 )
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 # Настройка OAuth2 для Bearer-токенов (tokenUrl="login" — роут для получения токена)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 

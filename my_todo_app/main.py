@@ -1,8 +1,7 @@
-# Основной импорт FastAPI
 from fastapi import FastAPI, Depends, HTTPException, status, Request, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select   
+from sqlalchemy import select
 from contextlib import asynccontextmanager
 from datetime import timedelta
 import os
@@ -10,7 +9,6 @@ import shutil
 from pathlib import Path
 import uuid
 
-# Импорт наших модулей
 from .database import engine, get_db, Base
 from .models import User
 from .schemas import UserCreate, Token, TodoCreate, TodoUpdate, Todo
@@ -23,7 +21,6 @@ from .auth import (
 )
 from .crud import get_todos, get_todo, create_todo, update_todo, delete_todo
 
-# Работа с картинками/статикой
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +30,9 @@ from starlette.middleware.sessions import SessionMiddleware
 UPLOAD_DIR = Path("static/uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# ВАЖНО: Читаем секретный ключ из переменных окружения
+SESSION_SECRET = os.getenv("SESSION_SECRET", "dev-secret-key-change-in-production")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
@@ -40,13 +40,14 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(
-    title="TODO app с HTMX",
+    title="TODO App с HTMX",
     lifespan=lifespan
 )
 
-# Секретный ключ поменять
 templates = Jinja2Templates(directory="templates")
-app.add_middleware(SessionMiddleware, secret_key="your-secret-key-change-me")   #Ключ
+
+# Используем секретный ключ из env
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Функция для сохранения файлов
@@ -64,7 +65,6 @@ async def save_upload_file(upload_file: UploadFile, folder: str = "uploads") -> 
 
 # ===== HTML ROUTES =====
 
-# Роут получения токена -> при его отсутствии передаем юзеру логин эндпоинт
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Главная страница (редирект на логин или дашборд)"""
@@ -73,19 +73,16 @@ async def home(request: Request):
         return RedirectResponse(url="/dashboard", status_code=303)
     return RedirectResponse(url="/login", status_code=303)
 
-# Роут логина
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     """Страница логина"""
     return templates.TemplateResponse("login.html", {"request": request})
 
-# Роут реги
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
     """Страница регистрации"""
     return templates.TemplateResponse("register.html", {"request": request})
 
-# Дашборд 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     """Главный дашборд с задачами"""
@@ -104,8 +101,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         request.session.pop("token", None)
         return RedirectResponse(url="/login", status_code=303)
-    
-# Выход из системы, обнуление токена
+
 @app.get("/logout")
 async def logout(request: Request):
     """Выход из системы"""
@@ -150,7 +146,6 @@ async def api_register(
     response.headers["HX-Redirect"] = "/dashboard"
     return response
 
-# Роут логина (/login) - 
 @app.post("/api/login")
 async def api_login(
     request: Request,
@@ -179,9 +174,8 @@ async def api_login(
     response.headers["HX-Redirect"] = "/dashboard"
     return response
 
-# Защищённые роуты для задач - FIXED: all functions now async with await
+# ===== TODO API (HTMX) =====
 
-# Роут создания todo
 @app.post("/api/todos")
 async def api_create_todo(
     request: Request,
@@ -215,7 +209,6 @@ async def api_create_todo(
         "todo": new_todo
     })
 
-# Роут удаления
 @app.delete("/api/todos/{todo_id}")
 async def api_delete_todo(
     request: Request,
@@ -232,7 +225,6 @@ async def api_delete_todo(
     
     return ""  # HTMX удалит элемент из DOM
 
-# Роут обновления задачи
 @app.patch("/api/todos/{todo_id}/toggle")
 async def api_toggle_todo(
     request: Request,
@@ -258,7 +250,6 @@ async def api_toggle_todo(
         "todo": updated_todo
     })
 
-# Роут загрузки аватара
 @app.post("/api/upload-avatar")
 async def upload_avatar(
     request: Request,
@@ -286,7 +277,6 @@ async def upload_avatar(
 
 @app.post("/register", response_model=Token)
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Проверяем, существует ли пользователь (async-стиль)
     query = select(User).filter(User.username == user.username)
     result = await db.execute(query)
     existing_user = result.scalar_one_or_none()
@@ -299,17 +289,15 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(db_user)
     
-    # Создаём токен и возвращаем
     access_token = create_access_token(
         data={"sub": db_user.username},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Роут логина (/login) - FIXED: added await
 @app.post("/login", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    user = await authenticate_user(db, form_data.username, form_data.password)  # ← FIXED: added await
+    user = await authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -322,10 +310,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Защищённые роуты для задач - FIXED: all functions now async with await
-
 @app.get("/todos/", response_model=list[Todo])
-async def read_todos(  # ← FIXED: added async
+async def read_todos(
     skip: int = 0,
     limit: int = 100,
     current_user: User = Depends(get_current_user),
@@ -333,10 +319,8 @@ async def read_todos(  # ← FIXED: added async
 ):
     todos = await get_todos(db, current_user, skip=skip, limit=limit)
     return todos
-    todos = await get_todos(db, current_user, skip=skip, limit=limit)
-    return todos
 
-# Простой роут для проверки (доступен всем)
-@app.get("/")
-def root():
-    return {"message": "Привет! Зайди в /docs для тестирования API"}
+# Health check endpoint (для мониторинга)
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
